@@ -64,7 +64,7 @@ def train_label_encoder(path2file):
         if isinstance(row["Text"], str):
             row = "<start> " + row["Text"] + " <end>"
             row = re.findall(r'^-+|\w+|\S+', row)
-            row = [word.lower() for word in row]
+            row = [word.lower() for word in row if word in VOCAB]
             unique_words.update(row)
     label_encoder = LabelEncoder()
     label_encoder.fit(list(unique_words), )
