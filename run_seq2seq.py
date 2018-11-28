@@ -19,6 +19,7 @@ def load_embeddings(path2file):
     vocab = {}
     words = []
     vectors = []
+    count = 0
     for line in f:
         tokens = line.split()
         word = tokens[0]
@@ -26,6 +27,19 @@ def load_embeddings(path2file):
         words.append(word)
         vectors.append(embedding)
         vocab[word] = embedding
+        count += 1
+        if count > 100000:
+            break
+    vocab['unk'] = np.array([-7.9149e-01,  8.6617e-01,  1.1998e-01,  9.2287e-04,  2.7760e-01,
+       -4.9185e-01,  5.0195e-01,  6.0792e-04, -2.5845e-01,  1.7865e-01,
+        2.5350e-01,  7.6572e-01,  5.0664e-01,  4.0250e-01, -2.1388e-03,
+       -2.8397e-01, -5.0324e-01,  3.0449e-01,  5.1779e-01,  1.5090e-02,
+       -3.5031e-01, -1.1278e+00,  3.3253e-01, -3.5250e-01,  4.1326e-02,
+        1.0863e+00,  3.3910e-02,  3.3564e-01,  4.9745e-01, -7.0131e-02,
+       -1.2192e+00, -4.8512e-01, -3.8512e-02, -1.3554e-01, -1.6380e-01,
+        5.2321e-01, -3.1318e-01, -1.6550e-01,  1.1909e-01, -1.5115e-01,
+       -1.5621e-01, -6.2655e-01, -6.2336e-01, -4.2150e-01,  4.1873e-01,
+       -9.2472e-01,  1.1049e+00, -2.9996e-01, -6.3003e-03,  3.9540e-01])
     # add representation for start and end tokens
     dim = len(vocab["unk"])
     vocab["<start>"] = np.zeros((dim,))
