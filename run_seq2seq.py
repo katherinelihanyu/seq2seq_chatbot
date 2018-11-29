@@ -8,7 +8,7 @@ import sys
 import pickle
 from seq2seq import Seq2seq
 
-def load_embeddings(path2file):
+def load_embeddings(path2file, vocab_size):
     """
     Loads pretrained embeddings from a file and returns
     the list of words, a numpy matrix with each row
@@ -17,18 +17,14 @@ def load_embeddings(path2file):
     """
     f = open(path2file,'r')
     vocab = {}
-    words = []
-    vectors = []
     count = 0
     for line in f:
         tokens = line.split()
         word = tokens[0]
         embedding = np.array([float(val) for val in tokens[1:]])
-        words.append(word)
-        vectors.append(embedding)
         vocab[word] = embedding
         count += 1
-        if count > 100000:
+        if count > vocab_size:
             break
     vocab['unk'] = np.array([-7.9149e-01,  8.6617e-01,  1.1998e-01,  9.2287e-04,  2.7760e-01,
        -4.9185e-01,  5.0195e-01,  6.0792e-04, -2.5845e-01,  1.7865e-01,
@@ -46,7 +42,8 @@ def load_embeddings(path2file):
     vocab["<start>"][0] = 1
     vocab["<end>"] = np.zeros((dim,))
     vocab["<end>"][1] = 1
-    return words, np.asarray(vectors), vocab
+    print("VOCAB SIZE:", len(vocab))
+    return vocab
 
 def length_longest_sentence(path2file):
     max_sentence_length = 0
@@ -64,7 +61,7 @@ def train_label_encoder(path2file):
         if isinstance(row["Text"], str):
             row = "<start> " + row["Text"] + " <end>"
             row = re.findall(r'^-+|\w+|\S+', row)
-            row = [word.lower() for word in row if word in VOCAB]
+            row = [word.lower() for word in row if word.lower() in VOCAB]
             unique_words.update(row)
     label_encoder = LabelEncoder()
     label_encoder.fit(list(unique_words), )
@@ -126,8 +123,9 @@ def sample_generator():
 
 # load data
 chunksize = 256
+vocab_size = 1000
 path2file = "data/movie_lines.tsv"
-_, _, VOCAB = load_embeddings('data/glove.6B.50d.txt')
+VOCAB = load_embeddings('data/glove.6B.50d.txt',vocab_size)
 train_df = pd.read_csv(path2file, sep="\t",error_bad_lines=False, chunksize = chunksize)
 train_df = iter(train_df)
 
@@ -153,29 +151,3 @@ params = {'embedding_dim': 50,
 
 seq2seq = Seq2seq(params)
 seq2seq.train(sample_generator())
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
