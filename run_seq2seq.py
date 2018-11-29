@@ -36,8 +36,8 @@ def load_embeddings(path2file, vocab_size):
         5.2321e-01, -3.1318e-01, -1.6550e-01,  1.1909e-01, -1.5115e-01,
        -1.5621e-01, -6.2655e-01, -6.2336e-01, -4.2150e-01,  4.1873e-01,
        -9.2472e-01,  1.1049e+00, -2.9996e-01, -6.3003e-03,  3.9540e-01])
+    dim = len(vocab['unk'])
     # add representation for start and end tokens
-    dim = len(vocab["unk"])
     vocab["<start>"] = np.zeros((dim,))
     vocab["<start>"][0] = 1
     vocab["<end>"] = np.zeros((dim,))
@@ -121,33 +121,49 @@ def sample_generator():
             first = False
         yield [np.array(encoder_input_data), np.array(decoder_input_data)], np.array(decoder_output_data)
 
-# load data
-chunksize = 256
-vocab_size = 1000
-path2file = "data/movie_lines.tsv"
-VOCAB = load_embeddings('data/glove.6B.50d.txt',vocab_size)
-train_df = pd.read_csv(path2file, sep="\t",error_bad_lines=False, chunksize = chunksize)
-train_df = iter(train_df)
+def main():
+    # load data
+    global chunksize
+    chunksize = 256
+    vocab_size = 1000
+    path2file = "data/movie_lines.tsv"
+    global VOCAB
+    VOCAB = load_embeddings('data/glove.6B.50d.txt',vocab_size)
+    train_df = pd.read_csv(path2file, sep="\t", error_bad_lines=False, chunksize = chunksize, encoding='utf-8')
+    train_df = iter(train_df)
 
-# variables to help read in pairs
-prev_row = None
-first = True
+    # variables to help read in pairs
+    global prev_row
+    prev_row = None
+    global first
+    first = True
 
-# determine parameters
-dim = len(VOCAB['unk'])
-max_sentence_length = length_longest_sentence(path2file)
-label_encoder = train_label_encoder(path2file)
-pickle.dump(label_encoder, open("data/label_encoder.p", "wb"))
-num_unique_words = len(label_encoder.classes_)
-print("number of unique words: %s" % (num_unique_words))
+    # determine parameters
+    global dim
+    dim = len(VOCAB['unk'])
+    global max_sentence_length
+    max_sentence_length = length_longest_sentence(path2file)
+    global label_encoder
+    label_encoder = train_label_encoder(path2file)
+    pickle.dump(label_encoder, open("data/label_encoder.p", "wb"))
+    global num_unique_words
+    num_unique_words = len(label_encoder.classes_)
+    print("number of unique words: %s" % (num_unique_words))
 
-params = {'embedding_dim': 50,
-         'latent_dim': 256,
-         'epochs': 2,
-         'max_encoder_seq_length': max_sentence_length,
-         'max_decoder_seq_length': max_sentence_length,
-         'num_unique_words': len(label_encoder.classes_),
-         'steps_per_epoch': 600}
+    params = {'embedding_dim': 50,
+             'latent_dim': 256,
+             'epochs': 1,
+             'max_encoder_seq_length': max_sentence_length,
+             'max_decoder_seq_length': max_sentence_length,
+             'num_unique_words': len(label_encoder.classes_),
+             'steps_per_epoch': 950}
 
-seq2seq = Seq2seq(params)
-seq2seq.train(sample_generator())
+    seq2seq = Seq2seq(params)
+    seq2seq.train(sample_generator())
+
+if __name__ == "__main__":
+    main()
+
+
+
+

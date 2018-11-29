@@ -1,6 +1,7 @@
 from keras.models import Model
 from keras.layers import Input, LSTM, Dense
 from keras.models import load_model
+import keras.optimizers
 import numpy as np
 import os
 
@@ -35,7 +36,7 @@ class Seq2seq:
         
         # Set up training model and train
         model = Model([encoder_inputs, decoder_inputs], decoder_outputs)
-        model.compile(optimizer='rmsprop', loss='categorical_crossentropy')
+        model.compile(optimizer = keras.optimizers.Adam(lr=0.001), loss='categorical_crossentropy', metrics = ['accuracy'])
         model.fit_generator(sample_generator,
                   epochs=self.EPOCHS,
                   steps_per_epoch = self.STEPS_PER_EPOCH)
