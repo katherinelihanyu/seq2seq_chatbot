@@ -100,7 +100,7 @@ class Seq2seq:
             
             # Exit condition: either hit max length
             # or find stop character.
-            if sampled_token_index == 1 or len(decoded_sentence) > self.MAX_DECODER_SEQ_LENGTH:
+            if sampled_token_index == 56 or len(decoded_sentence) > self.MAX_DECODER_SEQ_LENGTH:
                 stop_condition = True
 
             # Update the target sequence (of length 1).
@@ -110,6 +110,7 @@ class Seq2seq:
             # Update states
             states_value = [h, c]
 
+        decoded_sentence = decoded_sentence[:-1]
         return decoded_sentence
 
 
