@@ -105,6 +105,20 @@ def sample_generator():
             first = False
         yield [np.array(encoder_input_data), np.array(decoder_input_data)], np.array(decoder_output_data)
 
+def line_generator(train_df):
+    for index, row in train_df.iterrows():
+        if isinstance(row["Text"], str):
+            vec_einput = np.zeros((max_sentence_length, num_unique_words))
+            words = re.findall(pattern, row["Text"])
+            words = [word.lower() for word in words if word.lower() in VOCAB]
+            if len(words) == 0:
+                continue
+            print("text:", row["Text"])
+            wordIntegers = label_encoder.transform(words)
+            wordOneHot = to_categorical(wordIntegers, num_classes = num_unique_words)
+            vec_einput[:len(words)]= wordOneHot
+            yield np.array([vec_einput])
+
 def main():
     # load data
     global pattern
@@ -141,15 +155,18 @@ def main():
              'max_encoder_seq_length': max_sentence_length,
              'max_decoder_seq_length': max_sentence_length,
              'num_unique_words': len(label_encoder.classes_),
-             'steps_per_epoch': 950} #950
+             'steps_per_epoch': 200} #950
 
     seq2seq = Seq2seq(params)
-    seq2seq.train(sample_generator())
-    seq2seq.load_trained_model('models/one_hot.h5')
-    input_seq = "Hello, my name is John."
-    pred = seq2seq.predict(next(sample_generator())[0][1])
-    print("pred", pred)
-    print("result",label_encoder.inverse_transform(pred))
+    # seq2seq.train(sample_generator())
+    seq2seq.load_trained_model('models/s2s2.h5')
+    num_trial = 10
+    g = line_generator(movie_lines)
+    for i in range(num_trial):
+        pred = seq2seq.predict(next(g))
+        pred = label_encoder.inverse_transform(pred)
+        pred = "".join(pred)
+        print("result:",pred)
 
 if __name__ == "__main__":
     main()
