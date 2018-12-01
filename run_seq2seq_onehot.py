@@ -1,5 +1,6 @@
-from sklearn.preprocessing import LabelEncoder
 from keras.utils import to_categorical
+from keras.preprocessing.text import Tokenizer
+from keras.preprocessing.sequence import pad_sequences
 import csv
 import re
 import pandas as pd
@@ -50,23 +51,20 @@ def train_label_encoder(train_df):
             row = re.findall(pattern, row)
             row = [word.lower() for word in row if word.lower() in VOCAB]
             unique_words.update(row)
-    label_encoder = LabelEncoder()
-    label_encoder.fit(list(unique_words), )
-    return label_encoder
+    tokenizer = Tokenizer()
+    tokenizer.fit_on_texts(unique_words)
+    return tokenizer
 
 def process_row(row, prev_row):
-    vec_einput = np.zeros((max_sentence_length, num_unique_words))
+    #vec_einput = np.zeros((max_sentence_length, num_unique_words))
     words = re.findall(pattern, prev_row["Text"])
     words = [word.lower() for word in words if word.lower() in VOCAB]
     if len(words) == 0:
         return None
     if len(words) > max_sentence_length:
         words = words[:max_sentence_length]
-    wordIntegers = label_encoder.transform(words)
-    wordOneHot = to_categorical(wordIntegers, num_classes = num_unique_words)
-    vec_einput[:len(words)]= wordOneHot
-    vec_dinput = np.zeros((max_sentence_length, num_unique_words))
-    vec_doutput = np.zeros((max_sentence_length, num_unique_words))
+    vec_einput = label_encoder.texts_to_sequences([" ".join(words)])
+    vec_einput = np.squeeze(pad_sequences(vec_einput, maxlen = max_sentence_length, padding='post'), axis = 0)
     words = re.findall(pattern, row["Text"])
     words = [word.lower() for word in words if word.lower() in VOCAB]
     if len(words) == 0:
@@ -75,10 +73,12 @@ def process_row(row, prev_row):
     words.append("<end>")
     if len(words) > max_sentence_length:
         words = words[:max_sentence_length]
-    wordIntegers = label_encoder.transform(words)
-    wordOneHot = to_categorical(wordIntegers, num_classes = num_unique_words)
-    vec_dinput[:len(words)]= wordOneHot
-    vec_doutput[:len(words)-1] = wordOneHot[1:]
+    vec_dinput = label_encoder.texts_to_sequences([" ".join(words)])
+    vec_dinput = np.squeeze(pad_sequences(vec_dinput, maxlen = max_sentence_length, padding='post'), axis = 0)
+    vec_doutput = label_encoder.texts_to_sequences([" ".join(words[1:])])
+    vec_doutput = pad_sequences(vec_doutput, maxlen = max_sentence_length, padding='post')
+    vec_doutput = np.squeeze(to_categorical(vec_doutput, num_classes = num_unique_words + 1), axis = 0)
+
     return vec_einput, vec_dinput, vec_doutput
 
 def sample_generator():
@@ -107,12 +107,13 @@ def sample_generator():
                     decoder_output_data.append(vec_doutput)
             prev_row = row
             first = False
+
         yield [np.array(encoder_input_data), np.array(decoder_input_data)], np.array(decoder_output_data)
 
 def line_generator(train_df):
     for index, row in train_df.iterrows():
         if isinstance(row["Text"], str):
-            vec_einput = np.zeros((max_sentence_length, num_unique_words))
+            #vec_einput = np.zeros((max_sentence_length, num_unique_words))
             words = re.findall(pattern, row["Text"])
             words = [word.lower() for word in words if word.lower() in VOCAB]
             if len(words) == 0:
@@ -120,10 +121,13 @@ def line_generator(train_df):
             if len(words) > max_sentence_length:
                 words = words[:max_sentence_length]
             print("text:", row["Text"])
-            wordIntegers = label_encoder.transform(words)
-            wordOneHot = to_categorical(wordIntegers, num_classes = num_unique_words)
-            vec_einput[:len(words)]= wordOneHot
-            yield np.array([vec_einput])
+            vec_einput = label_encoder.texts_to_sequences([" ".join(words)])
+            vec_einput = pad_sequences(vec_einput, maxlen = max_sentence_length, padding='post')
+            #wordIntegers = label_encoder.transform(words)
+            #wordOneHot = to_categorical(wordIntegers, num_classes = num_unique_words)
+            #vec_einput[:len(words)]= wordOneHot
+            #yield np.array([vec_einput])
+            yield vec_einput
 
 def main():
     # load data
@@ -150,11 +154,17 @@ def main():
     # max_sentence_length = length_longest_sentence(movie_lines)
     max_sentence_length = 50
     global label_encoder
-    label_encoder = train_label_encoder(movie_lines)
-    pickle.dump(label_encoder, open("data/label_encoder.p", "wb"))
+
+    #label_encoder = train_label_encoder(movie_lines)
+    #pickle.dump(label_encoder, open("data/label_encoder.p", "wb"))
+    label_encoder = pickle.load(open("data/label_encoder.p", "rb"))
     global num_unique_words
-    num_unique_words = len(label_encoder.classes_)
+    num_unique_words = len(label_encoder.word_index)
     print("number of unique words: %s" % (num_unique_words))
+
+    # Reverse tokenizer
+    reverse_tokenizer = dict(map(reversed, label_encoder.word_index.items()))
+    #print(reverse_tokenizer[0])
 
     params = {'embedding_dim': num_unique_words,
              'latent_dim': 256,
@@ -162,17 +172,19 @@ def main():
              'max_encoder_seq_length': max_sentence_length,
              'max_decoder_seq_length': max_sentence_length,
              'num_unique_words': num_unique_words,
-             'steps_per_epoch': 200,
+             'steps_per_epoch': 100,
              'label_encoder': label_encoder} #950
 
     seq2seq = Seq2seq(params)
-    seq2seq.train(sample_generator())
+    #seq2seq.train(sample_generator())
     seq2seq.load_trained_model('models/s2s2.h5')
     num_trial = 10
     g = line_generator(movie_lines)
     for i in range(num_trial):
         pred = seq2seq.predict(next(g))
-        pred = label_encoder.inverse_transform(pred)
+        # 0 = unknown
+        pred = [word for word in pred if word != 0]
+        pred = [reverse_tokenizer[int(word)] for word in pred]
         pred = " ".join(pred)
         print("result:",pred)
 
