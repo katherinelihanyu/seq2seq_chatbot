@@ -54,7 +54,7 @@ def train_label_encoder(train_df):
     label_encoder.fit(list(unique_words), )
     return label_encoder
 
-def process_row(prev_row, row):
+def process_row(row, prev_row):
     vec_einput = np.zeros((max_sentence_length, num_unique_words))
     words = re.findall(pattern, prev_row["Text"])
     words = [word.lower() for word in words if word.lower() in VOCAB]
@@ -99,8 +99,6 @@ def sample_generator():
         decoder_output_data = []
         for index, row in chunk.iterrows():
             if not first and isinstance(prev_row["Text"], str) and isinstance(row["Text"], str)and int(prev_row["LineID"][1:]) == int(row["LineID"][1:]) + 1:
-                print("prev_row[Text]",prev_row["Text"])
-                print("row[Text]",row["Text"])
                 result = process_row(prev_row, row)
                 if result != None:
                     vec_einput, vec_dinput, vec_doutput = result
