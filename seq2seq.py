@@ -1,6 +1,7 @@
 from keras.models import Model
 from keras.layers import Input, LSTM, Dense
 from keras.models import load_model
+from keras.utils import to_categorical
 import keras.optimizers
 import numpy as np
 import os
@@ -17,6 +18,7 @@ class Seq2seq:
         self.MAX_ENCODER_SEQ_LENGTH = params['max_encoder_seq_length']
         self.MAX_DECODER_SEQ_LENGTH = params['max_decoder_seq_length']
         self.NUM_UNIQUE_WORDS = params['num_unique_words']
+        self.labelEncoder = params['label_encoder']
 
     def train(self, sample_generator):
         encoder_inputs = Input(shape=(None, self.EMBEDDING_DIM), name= "encoder_inputs")
@@ -82,9 +84,12 @@ class Seq2seq:
         states_value = self.encoder.predict(input_seq)
 
         # Generate empty target sequence of length 1.
-        target_seq = np.zeros((1, 1, self.EMBEDDING_DIM))
-        # Populate the first character of target sequence with the start character.
-        target_seq[0, 0, 0] = 1.
+        target_seq = self.labelEncoder.transform(["<start>"])
+        target_seq = to_categorical(target_seq, num_classes = self.NUM_UNIQUE_WORDS)
+        target_seq = np.reshape(target_seq, (1, 1, self.NUM_UNIQUE_WORDS))
+
+        # Stop token index
+        stopIdx = self.labelEncoder.transform(["<end>"])[0]
 
         # Sampling loop for a batch of sequences
         # (to simplify, here we assume a batch of size 1).
@@ -100,7 +105,7 @@ class Seq2seq:
             
             # Exit condition: either hit max length
             # or find stop character.
-            if sampled_token_index == 56 or len(decoded_sentence) > self.MAX_DECODER_SEQ_LENGTH:
+            if sampled_token_index == stopIdx or len(decoded_sentence) > self.MAX_DECODER_SEQ_LENGTH:
                 stop_condition = True
 
             # Update the target sequence (of length 1).
@@ -109,7 +114,6 @@ class Seq2seq:
 
             # Update states
             states_value = [h, c]
-
         decoded_sentence = decoded_sentence[:-1]
         return decoded_sentence
 
