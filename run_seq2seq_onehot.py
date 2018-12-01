@@ -60,6 +60,8 @@ def process_row(prev_row, row):
     words = [word.lower() for word in words if word.lower() in VOCAB]
     if len(words) == 0:
         return None
+    if len(words) > max_sentence_length:
+        words = words[:max_sentence_length]
     wordIntegers = label_encoder.transform(words)
     wordOneHot = to_categorical(wordIntegers, num_classes = num_unique_words)
     vec_einput[:len(words)]= wordOneHot
@@ -71,6 +73,8 @@ def process_row(prev_row, row):
         return None
     words.insert(0, "<start>")
     words.append("<end>")
+    if len(words) > max_sentence_length:
+        words = words[:max_sentence_length]
     wordIntegers = label_encoder.transform(words)
     wordOneHot = to_categorical(wordIntegers, num_classes = num_unique_words)
     vec_dinput[:len(words)]= wordOneHot
@@ -95,6 +99,8 @@ def sample_generator():
         decoder_output_data = []
         for index, row in chunk.iterrows():
             if not first and isinstance(prev_row["Text"], str) and isinstance(row["Text"], str)and int(prev_row["LineID"][1:]) == int(row["LineID"][1:]) + 1:
+                print("prev_row[Text]",prev_row["Text"])
+                print("row[Text]",row["Text"])
                 result = process_row(prev_row, row)
                 if result != None:
                     vec_einput, vec_dinput, vec_doutput = result
@@ -113,6 +119,8 @@ def line_generator(train_df):
             words = [word.lower() for word in words if word.lower() in VOCAB]
             if len(words) == 0:
                 continue
+            if len(words) > max_sentence_length:
+                words = words[:max_sentence_length]
             print("text:", row["Text"])
             wordIntegers = label_encoder.transform(words)
             wordOneHot = to_categorical(wordIntegers, num_classes = num_unique_words)
@@ -125,7 +133,7 @@ def main():
     pattern = r'^-+|\.+|\w+|\S+'
     global chunksize
     chunksize = 256
-    vocab_size = 1000
+    vocab_size = 10000
     path2file = "data/movie_lines.tsv"
     global VOCAB
     VOCAB = load_vocab('data/glove.6B.50d.txt',vocab_size)
@@ -141,7 +149,8 @@ def main():
     first = True
     # determine parameters
     global max_sentence_length
-    max_sentence_length = length_longest_sentence(movie_lines)
+    # max_sentence_length = length_longest_sentence(movie_lines)
+    max_sentence_length = 50
     global label_encoder
     label_encoder = train_label_encoder(movie_lines)
     pickle.dump(label_encoder, open("data/label_encoder.p", "wb"))
@@ -158,7 +167,7 @@ def main():
              'steps_per_epoch': 200} #950
 
     seq2seq = Seq2seq(params)
-    # seq2seq.train(sample_generator())
+    seq2seq.train(sample_generator())
     seq2seq.load_trained_model('models/s2s2.h5')
     num_trial = 10
     g = line_generator(movie_lines)
