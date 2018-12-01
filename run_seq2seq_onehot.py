@@ -149,23 +149,24 @@ def main():
     num_unique_words = len(label_encoder.classes_)
     print("number of unique words: %s" % (num_unique_words))
 
-    params = {'embedding_dim': len(label_encoder.classes_),
+    params = {'embedding_dim': num_unique_words,
              'latent_dim': 256,
              'epochs': 1,
              'max_encoder_seq_length': max_sentence_length,
              'max_decoder_seq_length': max_sentence_length,
-             'num_unique_words': len(label_encoder.classes_),
-             'steps_per_epoch': 200} #950
+             'num_unique_words': num_unique_words,
+             'steps_per_epoch': 200,
+             'label_encoder': label_encoder} #950
 
     seq2seq = Seq2seq(params)
-    # seq2seq.train(sample_generator())
+    #seq2seq.train(sample_generator())
     seq2seq.load_trained_model('models/s2s2.h5')
     num_trial = 10
     g = line_generator(movie_lines)
     for i in range(num_trial):
         pred = seq2seq.predict(next(g))
         pred = label_encoder.inverse_transform(pred)
-        pred = "".join(pred)
+        pred = " ".join(pred)
         print("result:",pred)
 
 if __name__ == "__main__":
