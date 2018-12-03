@@ -7,6 +7,7 @@ from keras.layers import Embedding
 from keras.preprocessing.sequence import pad_sequences
 import keras.optimizers
 import numpy as np
+import sys
 import os
 
 class Seq2seq:
@@ -24,14 +25,14 @@ class Seq2seq:
 
     def train(self, sample_generator):
         encoder_inputs = Input(shape=(self.MAX_ENCODER_SEQ_LENGTH, ), name= "encoder_inputs")
-        encoder_embedding = Embedding(self.EMBEDDING_DIM, self.LATENT_DIM)(encoder_inputs)
+        encoder_embedding = Embedding(self.EMBEDDING_DIM, self.LATENT_DIM, mask_zero=True)(encoder_inputs)
         # setup LSTM encoder model
         encoder_outputs, state_h, state_c = LSTM(self.LATENT_DIM, return_state=True, name = "encoder")(encoder_embedding)
         encoder_states = [state_h, state_c]
         
         # setup LSTM decoder model
         decoder_inputs = Input(shape=(self.MAX_DECODER_SEQ_LENGTH, ), name="decoder_inputs")
-        decoder_embedding = Embedding(self.EMBEDDING_DIM + 1, self.LATENT_DIM)(decoder_inputs)
+        decoder_embedding = Embedding(self.EMBEDDING_DIM + 1, self.LATENT_DIM, mask_zero=True)(decoder_inputs)
         lstm_out, _, _ = LSTM(self.LATENT_DIM, return_sequences=True, return_state=True, name = "decoder_lstm")(decoder_embedding, initial_state=encoder_states)
         decoder_outputs = Dense(self.NUM_UNIQUE_WORDS + 1, activation='softmax', name="decoder_dense")(lstm_out)
         
@@ -42,8 +43,8 @@ class Seq2seq:
         model.fit_generator(sample_generator,
                   epochs=self.EPOCHS,
                   steps_per_epoch = self.STEPS_PER_EPOCH)
-        model.save('models/s2s2.h5')
-        self.load_trained_model('models/s2s2.h5')
+        model.save('models/s2s3.h5')
+        self.load_trained_model('models/s2s3.h5')
 
     def load_trained_model(self, path2file):
         if not os.path.isfile(path2file):
