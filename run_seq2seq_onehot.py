@@ -177,8 +177,8 @@ def main():
              'label_encoder': label_encoder} #950
 
     seq2seq = Seq2seq(params)
-    # seq2seq.train(sample_generator())
-    seq2seq.load_trained_model('models/s2s2.h5')
+    seq2seq.train(sample_generator())
+    #seq2seq.load_trained_model('models/s2s3.h5')
     num_trial = 10
     g = line_generator(movie_lines)
     for i in range(num_trial):
