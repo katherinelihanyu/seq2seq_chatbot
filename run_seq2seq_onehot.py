@@ -75,6 +75,7 @@ def process_row(row, prev_row):
         words = words[:max_sentence_length]
     vec_dinput = label_encoder.texts_to_sequences([" ".join(words)])
     vec_dinput = np.squeeze(pad_sequences(vec_dinput, maxlen = max_sentence_length, padding='post'), axis = 0)
+    vec_dinput = np.reshape(vec_dinput,(vec_dinput.shape[0],1))
     vec_doutput = label_encoder.texts_to_sequences([" ".join(words[1:])])
     vec_doutput = pad_sequences(vec_doutput, maxlen = max_sentence_length, padding='post')
     vec_doutput = np.squeeze(to_categorical(vec_doutput, num_classes = num_unique_words + 1), axis = 0)
@@ -155,8 +156,8 @@ def main():
     max_sentence_length = 50
     global label_encoder
 
-    #label_encoder = train_label_encoder(movie_lines)
-    #pickle.dump(label_encoder, open("data/label_encoder.p", "wb"))
+    # label_encoder = train_label_encoder(movie_lines)
+    # pickle.dump(label_encoder, open("data/label_encoder.p", "wb"))
     label_encoder = pickle.load(open("data/label_encoder.p", "rb"))
     global num_unique_words
     num_unique_words = len(label_encoder.word_index)
@@ -172,16 +173,17 @@ def main():
              'max_encoder_seq_length': max_sentence_length,
              'max_decoder_seq_length': max_sentence_length,
              'num_unique_words': num_unique_words,
-             'steps_per_epoch': 100,
+             'steps_per_epoch': 5,
              'label_encoder': label_encoder} #950
 
     seq2seq = Seq2seq(params)
-    #seq2seq.train(sample_generator())
+    # seq2seq.train(sample_generator())
     seq2seq.load_trained_model('models/s2s2.h5')
     num_trial = 10
     g = line_generator(movie_lines)
     for i in range(num_trial):
         pred = seq2seq.predict(next(g))
+        print("pred",pred)
         # 0 = unknown
         pred = [word for word in pred if word != 0]
         pred = [reverse_tokenizer[int(word)] for word in pred]

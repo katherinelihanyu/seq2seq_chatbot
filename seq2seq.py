@@ -30,7 +30,7 @@ class Seq2seq:
         encoder_states = [state_h, state_c]
         
         # setup LSTM decoder model
-        decoder_inputs = Input(shape=(self.MAX_DECODER_SEQ_LENGTH, ), name="decoder_inputs")
+        decoder_inputs = Input(shape=(self.MAX_DECODER_SEQ_LENGTH,1), name="decoder_inputs")
         decoder_embedding = Embedding(self.EMBEDDING_DIM + 1, self.LATENT_DIM)(decoder_inputs)
         lstm_out, _, _ = LSTM(self.LATENT_DIM, return_sequences=True, return_state=True, name = "decoder_lstm")(decoder_embedding, initial_state=encoder_states)
         decoder_outputs = Dense(self.NUM_UNIQUE_WORDS + 1, activation='softmax', name="decoder_dense")(lstm_out)
@@ -115,7 +115,8 @@ class Seq2seq:
                 stop_condition = True
 
             # Update the target sequence (of length 1).
-            target_seq = [[sampled_token_index]]
+            target_seq = decoded_sentence+[sampled_token_index]
+            target_seq = [target_seq]
             target_seq = pad_sequences(target_seq, maxlen = self.MAX_ENCODER_SEQ_LENGTH, padding='post')
 
             # Update states
