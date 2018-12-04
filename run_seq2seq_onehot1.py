@@ -142,7 +142,7 @@ def main():
     pattern = r'^-+|\.+|\w+|\S+'
     global chunksize
     chunksize = 256
-    vocab_size = 5000
+    vocab_size = 2500
     path2file = "data/movie_lines.tsv"
     global VOCAB
     VOCAB = load_vocab('data/glove.6B.50d.txt',vocab_size)
