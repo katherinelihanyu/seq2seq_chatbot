@@ -161,9 +161,9 @@ def main():
     # max_sentence_length = length_longest_sentence(movie_lines)
     max_sentence_length = 50
     global label_encoder
-    #label_encoder = train_label_encoder(movie_lines)
-    #pickle.dump(label_encoder, open("data/label_encoder.p", "wb"))
-    label_encoder = pickle.load(open("data/label_encoder.p", "rb"))
+    label_encoder = train_label_encoder(movie_lines)
+    pickle.dump(label_encoder, open("data/label_encoder.p", "wb"))
+    # label_encoder = pickle.load(open("data/label_encoder.p", "rb"))
     global num_unique_words
     num_unique_words = len(label_encoder.classes_)
     print("number of unique words: %s" % (num_unique_words))
@@ -174,12 +174,12 @@ def main():
              'max_encoder_seq_length': max_sentence_length,
              'max_decoder_seq_length': max_sentence_length,
              'num_unique_words': num_unique_words,
-             'steps_per_epoch': 950,
-             'label_encoder': label_encoder} #950
+             'steps_per_epoch': 210,#950
+             'label_encoder': label_encoder}
 
     seq2seq = Seq2seq(params)
-    # seq2seq.train(sample_generator())
-    seq2seq.load_trained_model('models/s2s2.h5')
+    seq2seq.train(sample_generator())
+    # seq2seq.load_trained_model('models/s2s2.h5')
     num_trial = 10
     g = line_generator(movie_lines)
     for i in range(num_trial):
